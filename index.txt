@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Cek Aset Non Produksi PT INKA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed&display=swap" rel="stylesheet">
+
+<style>
+body { 
+  margin:20px; text-align:center; 
+  font-family:'Roboto Condensed', Arial, sans-serif;
+  transition:background 0.3s,color 0.3s;
+}
+#searchBox { 
+  padding:8px; font-size:16px; width:220px; 
+}
+#searchButton { font-size:16px; padding:8px 12px; cursor:pointer; }
+
+#output { 
+  margin-top:20px; text-align:left; display:inline-block; 
+  padding:12px; border-radius:6px; border:1px solid #ccc; 
+  max-width:95%; transition:background 0.3s,color 0.3s,border 0.3s;
+}
+.hint { font-size:12px; color:#666; margin-top:6px; }
+
+.asset-row {
+  display:grid; grid-template-columns:120px 10px 1fr;
+  padding:6px 0; border-bottom:1px solid #ddd; column-gap:6px;
+}
+.asset-row:last-child { border-bottom:none; }
+.asset-label { font-weight:500; text-align:left; }
+.asset-sep { text-align:center; }
+.asset-value { white-space:pre-wrap; word-break:break-word; padding-left:2px; }
+
+/* Tema */
+body.light { background:#f8fbff; color:#222; }
+#output.light { background:#f8fbff; color:#222; border:1px solid #ccc; }
+body.dark { background:#121212; color:#eee; }
+#output.dark { background:#121212; color:#eee; border:1px solid #555; }
+.asset-row.dark { border-color:#444; }
+</style>
+</head>
+<body class="light">
+
+<h2>Cek Data Aset</h2>
+<div>
+  <input type="text" id="searchBox" placeholder="Masukkan Nomor Aset..." list="assetList" autocomplete="off" />
+  <button id="searchButton">🔍</button>
+  <datalist id="assetList"></datalist>
+</div>
+<div class="hint">Tekan Enter atau 🔍 untuk mencari.</div>
+
+<!-- Tulisan diam R1 -->
+<div id="infoText" style="margin-top:15px; font-weight:500;"></div>
+
+<!-- Hasil pencarian -->
+<div id="output">Silakan ketik Nomor Aset…</div>
+
+<!-- Running text R2 -->
+<marquee id="runningText" scrollamount="4" style="margin-top:20px; font-size:14px;"></marquee>
+
+<!-- Tombol tema -->
+<button id="themeToggle" style="margin-top:10px;">Tema Gelap</button>
+
+<script>
+const sheetUrl="https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
+let assets=[],infoText="",runningText="";
+
+function parseCSV(text){
+  const lines=text.split(/\r?\n/);
+  return lines.map(line=>{
+    const cells=[]; let cur="",inQuotes=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch=='"'){ if(inQuotes&&line[i+1]=='"'){cur+='"';i++;} else inQuotes=!inQuotes; }
+      else if(ch==','&&!inQuotes){cells.push(cur);cur="";}
+      else cur+=ch;
+    }
+    cells.push(cur); return cells.map(c=>c.replace(/^"|"$/g,""));
+  });
+}
+
+async function loadSheet(){
+  const res=await fetch(sheetUrl); const text=await res.text(); const rows=parseCSV(text);
+  infoText=rows[0][0]||""; runningText=rows[1][0]||"";
+  assets=rows.slice(2).map(r=>({
+    kode:(r[4]||"").trim(),
+    deskripsi:r[5]||"",
+    kapitalisasi:r[6]||"",
+    nilai:r[19]||"",
+    opname:r[10]||r[9]||"",
+    lokasi:r[13]||"",
+    detail:r[14]||"",
+    kondisi:r[15]||"",
+    catatan:(r[16]&&r[16].trim())?r[16]:(r[21]||"")
+  })).filter(a=>a.kode);
+
+  document.getElementById("infoText").textContent=infoText;
+  document.getElementById("runningText").textContent=runningText;
+
+  const dataList=document.getElementById("assetList"); dataList.innerHTML="";
+  assets.map(a=>a.kode).sort((a,b)=>a.localeCompare(b)).slice(0,5000).forEach(k=>{
+    const opt=document.createElement("option"); opt.value=k; dataList.appendChild(opt);
+  });
+}
+loadSheet().catch(err=>{document.getElementById("output").innerHTML="Gagal memuat data: "+err;});
+
+function formatAsset(a){
+  let nilaiText=(a.nilai||"").trim();
+  if(!nilaiText) nilaiText="Rp. -"; else if(!nilaiText.startsWith("Rp.")) nilaiText="Rp. "+nilaiText;
+  const rows=[
+    ["Nomor Aset",a.kode],["Deskripsi",a.deskripsi],["Kapitalisasi",a.kapitalisasi],
+    ["Nilai Perolehan",nilaiText],["Lokasi",a.lokasi],["Detail Lokasi",a.detail],
+    ["Opname Terakhir",a.opname],["Kondisi",a.kondisi],["Catatan",a.catatan]
+  ];
+  return rows.map(([l,v])=>`
+    <div class="asset-row">
+      <div class="asset-label">${l}</div>
+      <div class="asset-sep">:</div>
+      <div class="asset-value">${v||""}</div>
+    </div>`).join("");
+}
+
+function searchAsset(){
+  const out=document.getElementById("output");
+  let kode=document.getElementById("searchBox").value.trim();
+  if(!kode){out.innerHTML="Masukkan Nomor Aset terlebih dahulu.";return;}
+  if(/^\d{8}$/.test(kode)) kode+="-0"; else if(/^\d{8}-$/.test(kode)) kode+="0";
+  const found=assets.find(a=>a.kode===kode);
+  out.innerHTML=found?formatAsset(found):"Data tidak ditemukan.";
+}
+
+const searchBox=document.getElementById("searchBox");
+searchBox.addEventListener("keydown",e=>{if(e.key==="Enter")searchAsset();});
+searchBox.addEventListener("focus",function(){setTimeout(()=>{this.select();},0);});
+document.getElementById("searchButton").addEventListener("click",searchAsset);
+
+// Tema
+const themeToggle=document.getElementById("themeToggle");
+function setTheme(theme){
+  document.body.className=theme; 
+  document.getElementById("output").className=theme;
+  themeToggle.textContent=theme==='light'?'Tema Gelap':'Tema Terang';
+}
+setTheme('light');
+themeToggle.addEventListener("click",()=>setTheme(document.body.className==='light'?'dark':'light'));
+</script>
+</body>
+</html>
