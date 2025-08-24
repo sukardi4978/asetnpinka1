@@ -4,9 +4,7 @@
 <meta charset="UTF-8" />
 <title>Cek Aset Non Produksi PT INKA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed&display=swap" rel="stylesheet">
-
 <style>
 body { 
   margin:20px; text-align:center; 
@@ -15,14 +13,12 @@ body {
 }
 #searchBox { padding:8px; font-size:16px; width:220px; }
 #searchButton { font-size:16px; padding:8px 12px; cursor:pointer; }
-
 #output { 
   margin-top:20px; text-align:left; display:inline-block; 
   padding:12px; border-radius:6px; border:1px solid #ccc; 
   max-width:95%; transition:background 0.3s,color 0.3s,border 0.3s;
 }
 .hint { font-size:12px; color:#666; margin-top:6px; }
-
 .asset-row {
   display:grid; grid-template-columns:120px 10px 1fr;
   padding:6px 0; border-bottom:1px solid #ddd; column-gap:6px;
@@ -31,7 +27,6 @@ body {
 .asset-label { font-weight:500; text-align:left; }
 .asset-sep { text-align:center; }
 .asset-value { white-space:pre-wrap; word-break:break-word; padding-left:2px; }
-
 /* Tema */
 body.light { background:#f8fbff; color:#222; }
 #output.light { background:#f8fbff; color:#222; border:1px solid #ccc; }
@@ -42,7 +37,7 @@ body.dark { background:#121212; color:#eee; }
 </head>
 <body class="light">
 
-<!-- Running text (R2) -->
+<!-- Running text dari R2 -->
 <marquee id="runningText" scrollamount="4" style="margin-bottom:20px; font-size:14px; font-weight:500;"></marquee>
 
 <h2>Cek Data Aset</h2>
@@ -53,7 +48,7 @@ body.dark { background:#121212; color:#eee; }
 </div>
 <div class="hint">Tekan Enter atau 🔍 untuk mencari.</div>
 
-<!-- Tulisan diam (R1) -->
+<!-- Tulisan diam dari R1 -->
 <div id="infoText" style="margin-top:15px; font-weight:500;"></div>
 
 <!-- Hasil pencarian -->
@@ -91,7 +86,6 @@ async function loadSheet(){
   // === Ambil R1 & R2 ===
   infoText=(rows[0]&&rows[0][0])?rows[0][0].trim():"";
   runningText=(rows[1]&&rows[1][0])?rows[1][0].trim():"";
-
   document.getElementById("infoText").textContent=infoText;
   document.getElementById("runningText").textContent=runningText;
 
@@ -108,9 +102,9 @@ async function loadSheet(){
     catatan:(r[16]&&r[16].trim())?r[16]:(r[21]||"")
   })).filter(a=>a.kode);
 
-  // Isi datalist
+  // Isi datalist (sorted A–Z)
   const dataList=document.getElementById("assetList"); dataList.innerHTML="";
-  assets.map(a=>a.kode).forEach(k=>{
+  assets.map(a=>a.kode).sort((a,b)=>a.localeCompare(b)).forEach(k=>{
     const opt=document.createElement("option"); opt.value=k; dataList.appendChild(opt);
   });
 }
