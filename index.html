@@ -4,12 +4,8 @@
 <meta charset="UTF-8" />
 <title>Cek Aset Non Produksi PT INKA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed&display=swap" rel="stylesheet">
 <style>
-body { 
-  margin:20px; text-align:center; 
-  font-family:'Roboto Condensed', Arial, sans-serif;
-}
+body { font-family: Arial, sans-serif; margin:20px; text-align:center; }
 #searchBox { padding:8px; font-size:16px; width:220px; }
 #searchButton { font-size:16px; padding:8px 12px; cursor:pointer; }
 #output { margin-top:20px; text-align:left; display:inline-block; padding:12px; max-width:95%; }
@@ -25,7 +21,7 @@ body {
 </head>
 <body>
 
-<!-- Running text (R2) -->
+<!-- Running text dari R2 -->
 <marquee id="runningText" scrollamount="4" style="margin-bottom:20px; font-size:14px; font-weight:500;"></marquee>
 
 <h2>Cek Data Aset</h2>
@@ -36,7 +32,7 @@ body {
 </div>
 <div class="hint">Tekan Enter atau 🔍 untuk mencari.</div>
 
-<!-- Tulisan diam (R1) -->
+<!-- Tulisan diam dari R1 -->
 <div id="infoText" style="margin-top:15px; font-weight:500;"></div>
 
 <!-- Hasil pencarian -->
@@ -117,10 +113,13 @@ function searchAsset(){
   out.innerHTML=found?formatAsset(found):"Data tidak ditemukan.";
 }
 
-document.getElementById("searchBox").addEventListener("keydown",e=>{if(e.key==="Enter")searchAsset();});
+// --- Event handler ---
+const searchBox=document.getElementById("searchBox");
+searchBox.addEventListener("keydown",e=>{if(e.key==="Enter")searchAsset();});
+searchBox.addEventListener("focus",function(){setTimeout(()=>{this.select();},0);});
 document.getElementById("searchButton").addEventListener("click",searchAsset);
-document.getElementById("searchBox").addEventListener("focus",function(){setTimeout(()=>{this.select();},0);});
 
+// --- Load data awal ---
 loadSheet().catch(err=>{
   document.getElementById("output").innerHTML="Gagal memuat data: "+err;
 });
