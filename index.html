@@ -18,7 +18,6 @@ body {
   padding: 8px; font-size: 16px; 
   font-family: 'Roboto Condensed', Arial, sans-serif; 
   vertical-align: middle; transition: all 0.2s ease; 
-  width: 180px; /* dipersempit */
 }
 #searchBox:focus { 
   border: 2px solid #1a73e8; 
@@ -31,10 +30,10 @@ body {
 }
 
 #output { 
-  margin-top: 20px; 
+  margin-top: 15px; 
   text-align: left; 
   display: inline-block; 
-  padding: 12px; 
+  padding: 10px; 
   border-radius: 6px; 
   transition: background 0.3s, color 0.3s, border 0.3s; 
   max-width: 95%;
@@ -44,10 +43,10 @@ body {
 /* Struktur hasil dengan grid */
 .asset-row {
   display: grid;
-  grid-template-columns: 110px 5px 1fr; /* label 120px, titik dua 5px */
-  padding: 2px 0;
+  grid-template-columns: 120px 10px 1fr; /* label sempit */
+  padding: 4px 0;
   border-bottom: 1px solid #ddd;
-  column-gap: 4px; 
+  column-gap: 6px; 
 }
 .asset-row:last-child { border-bottom: none; }
 
@@ -55,15 +54,7 @@ body {
   align-self: start;
 }
 
-.asset-label { 
-  font-weight: 500; 
-  text-align: left; 
-  width: 120px;
-  max-width: 120px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
+.asset-label { font-weight: 500; text-align: left; }
 .asset-sep { text-align: center; }
 .asset-value {
   white-space: pre-wrap;
@@ -99,15 +90,15 @@ body.dark { background: #121212; color: #eee; }
 <!-- Running text dari R2 -->
 <marquee id="runningText" scrollamount="4" style="margin-top:10px; font-size:14px;"></marquee>
 
-<div style="margin-top:10px;">
-  <input type="text" id="searchBox" placeholder="Masukkan Nomor Aset..." list="assetList" autocomplete="off" />
+<div style="margin-top:15px;">
+  <input type="text" id="searchBox" placeholder="Masukkan Nomor Aset..." list="assetList" autocomplete="off" style="width:220px;" />
   <button id="searchButton">🔍</button>
   <datalist id="assetList"></datalist>
 </div>
 <div class="hint">Tekan Enter atau tombol 🔍 untuk mencari.</div>
 
 <!-- Tulisan diam dari R1 -->
-<div id="infoText" style="margin-top:15px; font-weight:500;"></div>
+<div id="infoText" style="margin-top:10px; font-weight:500;"></div>
 
 <!-- Hasil pencarian -->
 <div id="output">Silakan ketik Nomor Aset…</div>
@@ -142,9 +133,12 @@ function parseCSV(text){
 async function loadSheet(){
   const res = await fetch(sheetUrl);
   const text = await res.text();
-  const rows = parseCSV(text);
+  let rows = parseCSV(text);
 
-  // R1 = tulisan diam, R2 = running text
+  // Buang baris kosong / aneh
+  rows = rows.filter(r => r.join("").trim() !== "");
+
+  // R1 = hari & tanggal, R2 = running text
   infoText = rows[0][0] || "";
   runningText = rows[1][0] || "";
 
@@ -169,7 +163,9 @@ async function loadSheet(){
   const dataList = document.getElementById("assetList");
   dataList.innerHTML="";
   assets.map(a=>a.kode).sort((a,b)=>a.localeCompare(b)).slice(0,5000).forEach(k=>{
-    const opt=document.createElement("option"); opt.value=k; dataList.appendChild(opt);
+    const opt=document.createElement("option");
+    opt.value=k;
+    dataList.appendChild(opt);
   });
 }
 loadSheet().catch(err=>{ document.getElementById("output").innerHTML="Gagal memuat data: "+err; });
@@ -184,57 +180,4 @@ function formatAsset(a){
     ["Deskripsi", a.deskripsi],
     ["Kapitalisasi", a.kapitalisasi],
     ["Nilai Perolehan", nilaiText],
-    ["Lokasi", a.lokasi],
-    ["Detail Lokasi", a.detail],
-    ["Opname Terakhir", a.opname],
-    ["Kondisi", a.kondisi],
-    ["Catatan", a.catatan]
-  ];
-
-  return rows.map(([label,val])=>`
-    <div class="asset-row">
-      <div class="asset-label">${label}</div>
-      <div class="asset-sep">:</div>
-      <div class="asset-value">${val||""}</div>
-    </div>
-  `).join("");
-}
-
-function searchAsset(){
-  const out=document.getElementById("output");
-  let kode=searchBox.value.trim();
-  if(!kode){ out.innerHTML="Masukkan Nomor Aset terlebih dahulu."; return; }
-  if(/^\d{8}$/.test(kode)) kode+="-0";
-  else if(/^\d{8}-$/.test(kode)) kode+="0";
-
-  const found=assets.find(a=>a.kode===kode);
-  out.innerHTML=found?formatAsset(found):"Data tidak ditemukan.";
-}
-
-searchBox.addEventListener("keydown",e=>{ if(e.key==="Enter") searchAsset(); });
-searchBox.addEventListener("focus",function(){ setTimeout(()=>{this.select();},0); });
-document.getElementById("searchButton").addEventListener("click", searchAsset);
-
-// ====== Toggle Tema ======
-const themeToggle=document.getElementById("themeToggle");
-function setTheme(theme){
-  document.body.className=theme;
-  document.getElementById("output").className=theme;
-  document.getElementById("searchBox").className=theme;
-
-  document.querySelectorAll(".asset-row").forEach(r=>{
-    if(theme==='dark') r.style.borderColor="#444";
-    else r.style.borderColor="#ddd";
-  });
-
-  themeToggle.textContent=theme==='light'?'Tema Gelap':'Tema Terang';
-}
-setTheme('light');
-themeToggle.addEventListener("click",()=>{ 
-  const current=document.body.className; 
-  setTheme(current==='light'?'dark':'light'); 
-});
-</script>
-
-</body>
-</html>
+    ["Lokasi", a.lokasi]()
