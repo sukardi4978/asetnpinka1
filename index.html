@@ -50,7 +50,7 @@
         const r2 = rows.length > 1 && rows[1].length > 0 ? rows[1][0] : "";
 
         // Tampilkan
-        document.getElementById("infoText").textContent = b2 || "⚠️ R1 kosong";
+        document.getElementById("infoText").textContent = r1 || "⚠️ R1 kosong";
         document.getElementById("runningText").innerHTML = "<span>" + (r2 || "⚠️ R2 kosong") + "</span>";
 
       } catch (err) {
@@ -83,3 +83,4 @@
   </script>
 </body>
 </html>
+
