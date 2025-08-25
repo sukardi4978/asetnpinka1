@@ -88,18 +88,14 @@ function cleanRows(rows){
   return rows.filter(r => {
     const joined = (r||[]).join('').trim();
     if(!joined) return false;
-    // jika baris hanya berisi angka 1 (atau hanya satu sel bernilai "1"), skip
     if(joined === '1') return false;
-    // jika first non-empty cell equals '1', skip
     const first = r.find(c => c && c.toString().trim() !== '');
     if(first && first.toString().trim() === '1') return false;
     return true;
   });
 }
 
-/* menemukan baris yang masuk akal untuk R1 dan R2:
-   pilih baris pertama yang mengandung huruf untuk R1, dan berikutnya yang mengandung huruf untuk R2.
-   fallback: gunakan baris 0/1 jika tidak ditemukan. */
+/* menemukan baris yang masuk akal untuk R1 dan R2 */
 function findR1R2(rows){
   let r1Index = -1, r2Index = -1;
   for(let i=0;i<rows.length;i++){
@@ -114,7 +110,6 @@ function findR1R2(rows){
   return [r1Index, r2Index];
 }
 
-/* safe get first textual cell from a row (prefer that contains letters) */
 function firstTextCell(row){
   if(!row) return '';
   for(const c of row){ if(c && hasLetter(c)) return c; }
@@ -128,9 +123,7 @@ async function loadSheet(){
     if(!res.ok) throw new Error('HTTP '+res.status);
     const text = await res.text();
     let rows = parseCSV(text);
-    console.log('parsed rows:', rows.length);
     rows = cleanRows(rows);
-    console.log('after clean rows:', rows.length);
 
     if(rows.length === 0){
       document.getElementById('infoText').textContent = '';
@@ -140,31 +133,23 @@ async function loadSheet(){
     }
 
     const [r1Index, r2Index] = findR1R2(rows);
-    console.log('r1Index, r2Index', r1Index, r2Index);
-
     const r1 = firstTextCell(rows[r1Index]);
     const r2 = firstTextCell(rows[r2Index]);
 
     document.getElementById('infoText').textContent = r1 || '';
     document.getElementById('runningText').textContent = r2 || '';
 
-    // cari baris awal data aset: cari baris pertama (dari top) yang punya kode aset plausible di kolom 4 (index 4)
-    let start = 0;
-    // prefer start after max(r2Index, r1Index)+1
-    start = Math.max(r1Index, r2Index) + 1;
+    let start = Math.max(r1Index, r2Index) + 1;
     while(start < rows.length){
       const cell = (rows[start] && rows[start][4]) ? rows[start][4].toString().trim() : '';
       if(cell && cell !== '1') break;
       start++;
     }
     if(start >= rows.length){
-      // last resort: find any row with a non-empty col4
       start = rows.findIndex(r => r[4] && r[4].toString().trim() && r[4].toString().trim() !== '1');
       if(start === -1) start = rows.length;
     }
-    console.log('data start index:', start);
 
-    // build assets
     assets = rows.slice(start).map(r => ({
       kode: (r[4]||'').toString().trim(),
       deskripsi: r[5]||'',
@@ -177,18 +162,13 @@ async function loadSheet(){
       catatan: (r[16] && r[16].toString().trim()) ? r[16] : (r[21]||'')
     })).filter(a => a.kode && a.kode !== '1');
 
-    console.log('assets loaded:', assets.length, assets.slice(0,3));
-
-    // populate datalist
     const dl = document.getElementById('assetList');
     dl.innerHTML = '';
     assets.map(a=>a.kode).sort((a,b)=>a.localeCompare(b)).slice(0,5000).forEach(k=>{
       const opt = document.createElement('option'); opt.value = k; dl.appendChild(opt);
     });
 
-    // success
   } catch(err){
-    console.error('loadSheet error', err);
     document.getElementById('output').innerHTML = 'Gagal memuat data: ' + err;
     document.getElementById('infoText').textContent = '';
     document.getElementById('runningText').textContent = '';
@@ -219,6 +199,9 @@ function formatAsset(a){
   `).join('');
 }
 
+/* --- Bagian pencarian + select-all sekali --- */
+let selectNextClick = false; // flag
+
 function searchAsset(){
   const key = document.getElementById('searchBox').value.trim();
   const out = document.getElementById('output');
@@ -228,12 +211,23 @@ function searchAsset(){
   else if(/^\d{8}-$/.test(kode)) kode += '0';
   const f = assets.find(a => a.kode === kode);
   out.innerHTML = f ? formatAsset(f) : 'Data tidak ditemukan.';
+
+  if(f){ selectNextClick = true; }
 }
 
-document.getElementById('searchBox').addEventListener('keydown', e=>{ if(e.key === 'Enter') searchAsset(); });
+const searchBox = document.getElementById('searchBox');
+searchBox.addEventListener('keydown', e=>{ if(e.key === 'Enter') searchAsset(); });
 document.getElementById('searchButton').addEventListener('click', searchAsset);
 
-// theme toggle
+// klik/fokus pertama setelah pencarian → select all
+searchBox.addEventListener('focus', function(){
+  if(selectNextClick){
+    this.select();
+    selectNextClick = false;
+  }
+});
+
+/* --- Theme toggle --- */
 const themeToggle = document.getElementById('themeToggle');
 function setTheme(theme){
   document.body.className = theme;
