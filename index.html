@@ -4,52 +4,33 @@
   <meta charset="UTF-8">
   <title>Aplikasi Aset</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #runningText {
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #infoText { font-weight: bold; margin-bottom: 10px; }
+    #runningText { 
+      margin: 10px 0; 
+      color: red; 
       white-space: nowrap;
       overflow: hidden;
       box-sizing: border-box;
-      border: 1px solid #ccc;
-      padding: 5px;
-      margin-bottom: 10px;
+      animation: running 15s linear infinite;
     }
-    #runningText span {
-      display: inline-block;
-      padding-left: 100%;
-      animation: marquee 15s linear infinite;
+    @keyframes running {
+      0% { text-indent: 100%; }
+      100% { text-indent: -100%; }
     }
-    @keyframes marquee {
-      from { transform: translate(0, 0); }
-      to { transform: translate(-100%, 0); }
-    }
-    #infoText {
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    #searchBox {
-      width: 300px;
-      padding: 5px;
-      margin-bottom: 10px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    table, th, td { border: 1px solid #ccc; }
-    th, td { padding: 8px; text-align: left; }
+    #searchBox { padding: 5px; width: 250px; }
+    table { border-collapse: collapse; margin-top: 15px; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+    th { background: #f2f2f2; }
   </style>
 </head>
 <body>
   <!-- Tulisan diam -->
   <div id="infoText"></div>
-
   <!-- Running text -->
-  <div id="runningText"><span></span></div>
-
+  <div id="runningText"></div>
   <!-- Kotak pencarian -->
   <input type="text" id="searchBox" placeholder="Cari aset...">
-
   <!-- Hasil pencarian -->
   <table id="resultTable">
     <thead>
@@ -63,30 +44,55 @@
   </table>
 
   <script>
+    let sheetData = [];
+    const searchBox = document.getElementById('searchBox');
+
     async function loadSheet() {
-      const response = await fetch('data.json'); // ganti sesuai sumber data
+      const response = await fetch('data.json'); // sumber data JSON
       const data = await response.json();
-      const rows = data.values;
+      sheetData = data.values;
 
-      // Ambil sesuai alamat sel
-      const info = (rows[1] && rows[1][1]) ? rows[1][1] : '';   // B2
-      const r2   = (rows[1] && rows[1][17]) ? rows[1][17] : ''; // R2
+      // ambil data dari alamat sel
+      const info = (sheetData[1] && sheetData[1][1]) ? sheetData[1][1] : '';   // B2
+      const r2   = (sheetData[1] && sheetData[1][17]) ? sheetData[1][17] : ''; // R2
 
-      // Tampilkan
       document.getElementById('infoText').textContent = info;
-      document.querySelector('#runningText span').textContent = r2;
-
-      // Simpan data tabel ke global
-      window.sheetRows = rows;
+      document.getElementById('runningText').textContent = r2;
     }
 
-    // Behavior searchBox: klik pertama = select all, klik berikutnya = edit
-    const searchBox = document.getElementById('searchBox');
-    let firstClickDone = false;
+    // pencarian aset
+    function searchAssets(keyword) {
+      const tbody = document.querySelector('#resultTable tbody');
+      tbody.innerHTML = '';
+      if (!keyword) return;
 
+      sheetData.forEach(row => {
+        const kode  = row[0] || '';
+        const nama  = row[1] || '';
+        const lokasi = row[2] || '';
+
+        if (kode.toLowerCase().includes(keyword.toLowerCase()) ||
+            nama.toLowerCase().includes(keyword.toLowerCase()) ||
+            lokasi.toLowerCase().includes(keyword.toLowerCase())) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${kode}</td><td>${nama}</td><td>${lokasi}</td>`;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+
+    // event pencarian (Enter)
+    searchBox.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        searchAssets(this.value);
+      }
+    });
+
+    // klik pertama = select all, klik berikutnya = edit
+    let firstClickDone = false;
     searchBox.addEventListener('click', function () {
       if (!firstClickDone) {
-        this.select();        // pilih semua teks
+        this.select();
         firstClickDone = true;
       }
     });
@@ -94,33 +100,7 @@
       firstClickDone = false;
     });
 
-    // Pencarian aset
-    searchBox.addEventListener('keyup', function () {
-      const keyword = this.value.toLowerCase();
-      const tbody = document.querySelector('#resultTable tbody');
-      tbody.innerHTML = '';
-
-      if (!window.sheetRows) return;
-
-      // Mulai dari baris ke-3 agar tidak bentrok header dan info
-      window.sheetRows.slice(2).forEach(row => {
-        const kode   = row[0] || '';
-        const nama   = row[1] || '';
-        const lokasi = row[2] || '';
-
-        if (
-          kode.toLowerCase().includes(keyword) ||
-          nama.toLowerCase().includes(keyword) ||
-          lokasi.toLowerCase().includes(keyword)
-        ) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${kode}</td><td>${nama}</td><td>${lokasi}</td>`;
-          tbody.appendChild(tr);
-        }
-      });
-    });
-
-    // jalankan load
+    // load data awal
     loadSheet();
   </script>
 </body>
