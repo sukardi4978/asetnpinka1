@@ -29,30 +29,31 @@ body {
   vertical-align: middle; cursor: pointer; 
 }
 
-/* Hasil pencarian */
 #output { 
   text-align: left; 
   display: inline-block; 
-  padding: 10px; 
+  padding: 12px; 
   border-radius: 6px; 
   transition: background 0.3s, color 0.3s, border 0.3s; 
-  max-width: 95%;
-  min-width: 300px;
+  max-width: 600px;
+  flex: 1;
 }
 .hint { font-size: 12px; color: #666; margin-top: 6px; }
 
 /* Struktur hasil dengan grid */
 .asset-row {
   display: grid;
-  grid-template-columns: 135px 10px 1fr; /* kolom label fix */
-  padding: 2px 0;
+  grid-template-columns: 130px 20px 1fr; /* label lebih sempit */
+  padding: 4px 0;
   border-bottom: 1px solid #ddd;
-  column-gap: 6px; 
+  column-gap: 4px; 
 }
 .asset-row:last-child { border-bottom: none; }
 
-.asset-label, .asset-sep, .asset-value { align-self: start; }
-.asset-label { font-weight: 500; text-align: left; white-space: nowrap; }
+.asset-label, .asset-sep, .asset-value {
+  align-self: start;
+}
+.asset-label { font-weight: 500; text-align: left; }
 .asset-sep { text-align: center; }
 .asset-value {
   white-space: pre-wrap;
@@ -63,9 +64,9 @@ body {
 
 /* Tombol tema */
 #themeToggle {
+  margin-left: 10px;
   padding: 6px 12px;
   cursor: pointer;
-  height: fit-content;
 }
 
 /* Tema Light */
@@ -84,22 +85,21 @@ body.dark { background: #121212; color: #eee; }
 
 <h2>Cek Data Aset</h2>
 
-<!-- Hari & tanggal dari R1 -->
-<div id="infoText" style="margin-top:10px; font-weight:500;"></div>
+<!-- Running text R2 -->
+<marquee id="runningText" scrollamount="4" style="margin-top:10px; font-size:14px; font-weight:500;"></marquee>
 
-<!-- Running text dari R2 (statis) -->
-<div id="runningText" style="margin-top:10px; font-size:14px; font-weight:500;"></div>
-
-<!-- Kotak pencarian -->
-<div style="margin-top:20px;">
+<div style="margin-top:15px;">
   <input type="text" id="searchBox" placeholder="Masukkan Nomor Aset..." list="assetList" autocomplete="off" style="width:220px;" />
   <button id="searchButton">🔍</button>
   <datalist id="assetList"></datalist>
 </div>
 <div class="hint">Tekan Enter atau tombol 🔍 untuk mencari.</div>
 
-<!-- Hasil pencarian + tombol tema di kanan -->
-<div id="resultWrapper" style="display:flex; align-items:flex-start; gap:10px; margin-top:15px;">
+<!-- Hari & tanggal (R1) -->
+<div id="infoText" style="margin-top:10px; font-weight:500;"></div>
+
+<!-- Hasil pencarian + tombol tema -->
+<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-top:15px; max-width:640px; margin-left:auto; margin-right:auto;">
   <div id="output">Silakan ketik Nomor Aset…</div>
   <button id="themeToggle">Tema Gelap</button>
 </div>
@@ -133,7 +133,7 @@ async function loadSheet(){
   const text = await res.text();
   const rows = parseCSV(text);
 
-  // R1 = hari/tanggal, R2 = running text
+  // R1 = tulisan diam, R2 = running text
   infoText = rows[0][0] || "";
   runningText = rows[1][0] || "";
 
