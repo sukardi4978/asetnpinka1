@@ -9,7 +9,7 @@
   body{margin:20px;font-family:'Roboto Condensed',Arial,sans-serif;text-align:center;}
   h2{margin:0 0 8px;}
   #runningText{margin:10px 0;font-size:14px;font-weight:500;color:#1a73e8;}
-  #searchBox{padding:8px;font-size:16px;width:220px;}
+  #searchBox{padding:8px;font-size:16px;width:220px;border:1px solid #ccc;border-radius:4px;}
   #searchButton{padding:8px 12px;cursor:pointer;}
   .hint{font-size:12px;color:#666;margin-top:6px;}
   #infoText{margin-top:10px;font-weight:500;}
@@ -24,6 +24,9 @@
   body.dark{background:#121212;color:#eee}
   #output.light{background:#f8fbff;border:1px solid #ccc}
   #output.dark{background:#121212;border:1px solid #555}
+  /* tambahan: input sesuai tema */
+  #searchBox.light{background:#fff;color:#222}
+  #searchBox.dark{background:#1e1e1e;color:#eee;border:1px solid #555}
 </style>
 </head>
 <body>
@@ -83,43 +86,29 @@ function hasLetter(s){
   catch(e){ return /[A-Za-z]/.test(s); }
 }
 
-/* bersihkan baris yang kosong atau hanya berisi '1' di sel pertama/non-empty */
+/* bersihkan baris yang kosong atau hanya berisi '1' */
 function cleanRows(rows){
   return rows.filter(r => {
     const joined = (r||[]).join('').trim();
     if(!joined) return false;
-    // jika baris hanya berisi angka 1 (atau hanya satu sel bernilai "1"), skip
     if(joined === '1') return false;
-    // jika first non-empty cell equals '1', skip
     const first = r.find(c => c && c.toString().trim() !== '');
     if(first && first.toString().trim() === '1') return false;
     return true;
   });
 }
 
-/* menemukan baris yang masuk akal untuk R1 dan R2:
-   pilih baris pertama yang mengandung huruf untuk R1, dan berikutnya yang mengandung huruf untuk R2.
-   fallback: gunakan baris 0/1 jika tidak ditemukan. */
+/* cari R1 (judul diam) & R2 (running text) */
 function findR1R2(rows){
-  let r1Index = -1, r2Index = -1;
-  for(let i=0;i<rows.length;i++){
-    const row = rows[i];
-    if(row.some(cell => hasLetter(cell))){
-      if(r1Index === -1) r1Index = i;
-      else if(r2Index === -1){ r2Index = i; break; }
+  let r1 = '', r2 = '';
+  for(const r of rows){
+    const joined = r.join(' ').trim();
+    if(joined && hasLetter(joined)){
+      if(!r1) r1 = joined;
+      else if(!r2){ r2 = joined; break; }
     }
   }
-  if(r1Index === -1) r1Index = 0;
-  if(r2Index === -1) r2Index = Math.min(rows.length-1, r1Index+1);
-  return [r1Index, r2Index];
-}
-
-/* safe get first textual cell from a row (prefer that contains letters) */
-function firstTextCell(row){
-  if(!row) return '';
-  for(const c of row){ if(c && hasLetter(c)) return c; }
-  for(const c of row){ if(c && c.toString().trim() !== '') return c; }
-  return '';
+  return [r1,r2];
 }
 
 async function loadSheet(){
@@ -128,9 +117,7 @@ async function loadSheet(){
     if(!res.ok) throw new Error('HTTP '+res.status);
     const text = await res.text();
     let rows = parseCSV(text);
-    console.log('parsed rows:', rows.length);
     rows = cleanRows(rows);
-    console.log('after clean rows:', rows.length);
 
     if(rows.length === 0){
       document.getElementById('infoText').textContent = '';
@@ -139,35 +126,18 @@ async function loadSheet(){
       return;
     }
 
-    const [r1Index, r2Index] = findR1R2(rows);
-    console.log('r1Index, r2Index', r1Index, r2Index);
-
-    const r1 = firstTextCell(rows[r1Index]);
-    const r2 = firstTextCell(rows[r2Index]);
-
+    const [r1,r2] = findR1R2(rows);
     document.getElementById('infoText').textContent = r1 || '';
     document.getElementById('runningText').textContent = r2 || '';
 
-    // cari baris awal data aset: cari baris pertama (dari top) yang punya kode aset plausible di kolom 4 (index 4)
-    let start = 0;
-    // prefer start after max(r2Index, r1Index)+1
-    start = Math.max(r1Index, r2Index) + 1;
-    while(start < rows.length){
-      const cell = (rows[start] && rows[start][4]) ? rows[start][4].toString().trim() : '';
-      if(cell && cell !== '1') break;
-      start++;
-    }
-    if(start >= rows.length){
-      // last resort: find any row with a non-empty col4
-      start = rows.findIndex(r => r[4] && r[4].toString().trim() && r[4].toString().trim() !== '1');
-      if(start === -1) start = rows.length;
-    }
-    console.log('data start index:', start);
+    // cari awal data aset
+    let start = rows.findIndex(r => r[4] && r[4] !== '1');
+    if(start === -1) start = rows.length;
 
     // build assets
     assets = rows.slice(start).map(r => ({
       kode: (r[4]||'').toString().trim(),
-      deskripsi: r[5]||'',
+      deskripsi: r[5]||'(Tanpa deskripsi)',
       kapitalisasi: r[6]||'',
       nilai: r[19]||'',
       opname: r[10]||r[9]||'',
@@ -177,8 +147,6 @@ async function loadSheet(){
       catatan: (r[16] && r[16].toString().trim()) ? r[16] : (r[21]||'')
     })).filter(a => a.kode && a.kode !== '1');
 
-    console.log('assets loaded:', assets.length, assets.slice(0,3));
-
     // populate datalist
     const dl = document.getElementById('assetList');
     dl.innerHTML = '';
@@ -186,7 +154,6 @@ async function loadSheet(){
       const opt = document.createElement('option'); opt.value = k; dl.appendChild(opt);
     });
 
-    // success
   } catch(err){
     console.error('loadSheet error', err);
     document.getElementById('output').innerHTML = 'Gagal memuat data: ' + err;
@@ -195,10 +162,14 @@ async function loadSheet(){
   }
 }
 
+function formatRupiah(num){
+  num = num.toString().replace(/[^\d]/g,'');
+  if(!num) return 'Rp. -';
+  return 'Rp. ' + num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
 function formatAsset(a){
-  let nilai = (a.nilai||'').toString().trim();
-  if(!nilai) nilai = 'Rp. -';
-  else if(!nilai.startsWith('Rp.')) nilai = 'Rp. ' + nilai;
+  let nilai = formatRupiah(a.nilai||'');
   const rows = [
     ['Nomor Aset', a.kode],
     ['Deskripsi', a.deskripsi],
