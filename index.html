@@ -43,7 +43,7 @@ body {
 /* Struktur hasil dengan grid */
 .asset-row {
   display: grid;
-  grid-template-columns: max-content 10px 1fr; /* label otomatis selebar teks terpanjang (Opname Terakhir) */
+  grid-template-columns: 135px 12px 1fr; /* default: cukup untuk \"Opname Terakhir\" */
   padding: 2px 0; /* lebih rapat */
   border-bottom: 1px solid #ddd;
   column-gap: 6px; 
@@ -93,7 +93,7 @@ body.dark { background: #121212; color: #eee; }
   <button id="searchButton">🔍</button>
   <datalist id="assetList"></datalist>
 </div>
-<div class="hint">Tekan enter atau tombol (gambar kaca pembesar) untuk mencari.</div>
+<div class="hint">Tekan Enter atau tombol (gambar kaca pembesar) untuk mencari.</div>
 
 <!-- Tulisan diam dari R1 (hari & tanggal) -->
 <div id="infoText" style="margin-top:12px; font-weight:500;"></div>
@@ -190,6 +190,24 @@ function formatAsset(a){
   `).join("");
 }
 
+function alignColumns(){
+  // Samakan lebar kolom label ke lebar label terpanjang (biasanya \"Opname Terakhir\")
+  const rows = document.querySelectorAll('#output .asset-row');
+  let maxW = 0;
+  rows.forEach(r=>{
+    const el = r.querySelector('.asset-label');
+    if(el){
+      const w = el.getBoundingClientRect().width;
+      if(w > maxW) maxW = w;
+    }
+  });
+  // fallback minimal agar tidak terlalu sempit
+  if(maxW < 120) maxW = 120;
+  rows.forEach(r=>{
+    r.style.gridTemplateColumns = `${Math.ceil(maxW)}px 12px 1fr`;
+  });
+}
+
 function searchAsset(){
   const out = document.getElementById("output");
   let kode = searchBox.value.trim();
@@ -198,6 +216,8 @@ function searchAsset(){
 
   const found = assets.find(a=>a.kode===kode);
   out.innerHTML = found ? formatAsset(found) : "Data tidak ditemukan.";
+  // rapikan kolom setelah render
+  if(found) alignColumns();
 }
 
 searchBox.addEventListener("keydown", e=>{ if(e.key==="Enter") searchAsset(); });
