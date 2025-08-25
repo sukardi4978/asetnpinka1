@@ -80,12 +80,6 @@ function parseCSV(text){
   return rows;
 }
 
-/* helper: apakah sebuah string mengandung huruf (unicode) */
-function hasLetter(s){
-  try { return /\p{L}/u.test(s); }
-  catch(e){ return /[A-Za-z]/.test(s); }
-}
-
 /* bersihkan baris yang kosong atau hanya berisi '1' */
 function cleanRows(rows){
   return rows.filter(r => {
@@ -96,19 +90,6 @@ function cleanRows(rows){
     if(first && first.toString().trim() === '1') return false;
     return true;
   });
-}
-
-/* cari R1 (judul diam) & R2 (running text) */
-function findR1R2(rows){
-  let r1 = '', r2 = '';
-  for(const r of rows){
-    const joined = r.join(' ').trim();
-    if(joined && hasLetter(joined)){
-      if(!r1) r1 = joined;
-      else if(!r2){ r2 = joined; break; }
-    }
-  }
-  return [r1,r2];
 }
 
 async function loadSheet(){
@@ -126,9 +107,12 @@ async function loadSheet(){
       return;
     }
 
-    const [r1,r2] = findR1R2(rows);
-    document.getElementById('infoText').textContent = r1 || '';
-    document.getElementById('runningText').textContent = r2 || '';
+    // ambil langsung dari sel tertentu
+    const r1 = rows[0] && rows[0][0] ? rows[0][0] : ''; // A1
+    const r2 = rows[1] && rows[1][0] ? rows[1][0] : ''; // A2
+
+    document.getElementById('infoText').textContent = r1;
+    document.getElementById('runningText').textContent = r2;
 
     // cari awal data aset
     let start = rows.findIndex(r => r[4] && r[4] !== '1');
@@ -216,6 +200,22 @@ setTheme('light');
 themeToggle.addEventListener('click', ()=> {
   const cur = document.body.className;
   setTheme(cur === 'light' ? 'dark' : 'light');
+});
+
+// select-all sekali saat klik pertama di searchBox
+const searchBox = document.getElementById('searchBox');
+let clickedOnce = false;
+searchBox.addEventListener('focus', () => {
+  if (!clickedOnce) {
+    searchBox.select();
+    clickedOnce = true;
+  }
+});
+searchBox.addEventListener('click', () => {
+  if (!clickedOnce) {
+    searchBox.select();
+    clickedOnce = true;
+  }
 });
 
 // init
