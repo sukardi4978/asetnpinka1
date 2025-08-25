@@ -6,9 +6,9 @@
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
     #infoText { font-weight: bold; margin-bottom: 10px; }
-    #runningText { 
-      margin: 10px 0; 
-      color: red; 
+    #runningText {
+      margin: 10px 0;
+      color: red;
       white-space: nowrap;
       overflow: hidden;
       box-sizing: border-box;
@@ -25,9 +25,9 @@
   </style>
 </head>
 <body>
-  <!-- Tulisan diam -->
+  <!-- Tulisan diam dari B2 -->
   <div id="infoText"></div>
-  <!-- Running text -->
+  <!-- Running text dari R2 -->
   <div id="runningText"></div>
   <!-- Kotak pencarian -->
   <input type="text" id="searchBox" placeholder="Cari aset...">
@@ -48,32 +48,34 @@
     const searchBox = document.getElementById('searchBox');
 
     async function loadSheet() {
-      const response = await fetch('data.json'); // sumber data JSON
+      const response = await fetch('data.json'); // data dari file JSON
       const data = await response.json();
       sheetData = data.values;
 
-      // ambil data dari alamat sel
-      const info = (sheetData[1] && sheetData[1][1]) ? sheetData[1][1] : '';   // B2
-      const r2   = (sheetData[1] && sheetData[1][17]) ? sheetData[1][17] : ''; // R2
+      // ambil B2 (row index 1, col index 1) dan R2 (row index 1, col index 17)
+      const b2 = sheetData[1]?.[1] || '';
+      const r2 = sheetData[1]?.[17] || '';
 
-      document.getElementById('infoText').textContent = info;
+      document.getElementById('infoText').textContent = b2;
       document.getElementById('runningText').textContent = r2;
     }
 
-    // pencarian aset
+    // fungsi pencarian
     function searchAssets(keyword) {
       const tbody = document.querySelector('#resultTable tbody');
       tbody.innerHTML = '';
       if (!keyword) return;
 
       sheetData.forEach(row => {
-        const kode  = row[0] || '';
-        const nama  = row[1] || '';
+        const kode   = row[0] || '';
+        const nama   = row[1] || '';
         const lokasi = row[2] || '';
 
-        if (kode.toLowerCase().includes(keyword.toLowerCase()) ||
-            nama.toLowerCase().includes(keyword.toLowerCase()) ||
-            lokasi.toLowerCase().includes(keyword.toLowerCase())) {
+        if (
+          kode.toLowerCase().includes(keyword.toLowerCase()) ||
+          nama.toLowerCase().includes(keyword.toLowerCase()) ||
+          lokasi.toLowerCase().includes(keyword.toLowerCase())
+        ) {
           const tr = document.createElement('tr');
           tr.innerHTML = `<td>${kode}</td><td>${nama}</td><td>${lokasi}</td>`;
           tbody.appendChild(tr);
@@ -81,26 +83,26 @@
       });
     }
 
-    // event pencarian (Enter)
+    // Enter = pencarian
     searchBox.addEventListener('keyup', function(e) {
       if (e.key === 'Enter') {
         searchAssets(this.value);
       }
     });
 
-    // klik pertama = select all, klik berikutnya = edit
-    let firstClickDone = false;
+    // klik pertama select all, klik berikutnya edit
+    let firstClick = false;
     searchBox.addEventListener('click', function () {
-      if (!firstClickDone) {
+      if (!firstClick) {
         this.select();
-        firstClickDone = true;
+        firstClick = true;
       }
     });
     searchBox.addEventListener('blur', function () {
-      firstClickDone = false;
+      firstClick = false;
     });
 
-    // load data awal
+    // load saat pertama
     loadSheet();
   </script>
 </body>
