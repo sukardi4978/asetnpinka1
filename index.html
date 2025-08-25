@@ -14,6 +14,18 @@ body {
   font-family: 'Roboto Condensed', Arial, sans-serif; 
   transition: background 0.3s, color 0.3s; 
 }
+
+h2 { margin-bottom: 10px; }
+
+/* Running text */
+#runningText {
+  margin: 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #c00;
+}
+
+/* Search box */
 #searchBox { 
   padding: 8px; font-size: 16px; 
   font-family: 'Roboto Condensed', Arial, sans-serif; 
@@ -29,24 +41,29 @@ body {
   vertical-align: middle; cursor: pointer; 
 }
 
+.hint { font-size: 12px; color: #666; margin-top: 6px; }
+
+/* Info text (hari & tanggal) */
+#infoText { margin-top: 12px; font-weight: 500; }
+
+/* Output hasil pencarian */
 #output { 
+  margin: 20px auto; 
   text-align: left; 
   display: inline-block; 
   padding: 12px; 
   border-radius: 6px; 
   transition: background 0.3s, color 0.3s, border 0.3s; 
-  max-width: 600px;
-  flex: 1;
+  max-width: 95%;
 }
-.hint { font-size: 12px; color: #666; margin-top: 6px; }
 
 /* Struktur hasil dengan grid */
 .asset-row {
   display: grid;
-  grid-template-columns: 130px 20px 1fr; /* label lebih sempit */
+  grid-template-columns: 140px 12px 1fr; /* label disesuaikan */
   padding: 4px 0;
   border-bottom: 1px solid #ddd;
-  column-gap: 4px; 
+  column-gap: 6px; 
 }
 .asset-row:last-child { border-bottom: none; }
 
@@ -64,7 +81,8 @@ body {
 
 /* Tombol tema */
 #themeToggle {
-  margin-left: 10px;
+  display: block;          
+  margin: 10px auto 0 auto; 
   padding: 6px 12px;
   cursor: pointer;
 }
@@ -85,8 +103,8 @@ body.dark { background: #121212; color: #eee; }
 
 <h2>Cek Data Aset</h2>
 
-<!-- Running text R2 -->
-<marquee id="runningText" scrollamount="4" style="margin-top:10px; font-size:14px; font-weight:500;"></marquee>
+<!-- Running text dari R2 -->
+<marquee id="runningText" scrollamount="4"></marquee>
 
 <div style="margin-top:15px;">
   <input type="text" id="searchBox" placeholder="Masukkan Nomor Aset..." list="assetList" autocomplete="off" style="width:220px;" />
@@ -95,23 +113,19 @@ body.dark { background: #121212; color: #eee; }
 </div>
 <div class="hint">Tekan Enter atau tombol 🔍 untuk mencari.</div>
 
-<!-- Hari & tanggal (R1) -->
-<div id="infoText" style="margin-top:10px; font-weight:500;"></div>
+<!-- Tulisan diam dari R1 -->
+<div id="infoText"></div>
 
-<!-- Hasil pencarian + tombol tema -->
-<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-top:15px; max-width:640px; margin-left:auto; margin-right:auto;">
-  <div id="output">Silakan ketik Nomor Aset…</div>
-  <button id="themeToggle">Tema Gelap</button>
-</div>
+<!-- Hasil pencarian -->
+<div id="output">Silakan ketik Nomor Aset…</div>
+
+<!-- Tombol tema -->
+<button id="themeToggle">Tema Gelap</button>
 
 <script>
 // ====== ASET ======
 const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
 let assets = [];
-let infoText = "";
-let runningText = "";
-
-const searchBox = document.getElementById("searchBox");
 
 function parseCSV(text){
   const lines = text.split(/\r?\n/);
@@ -133,9 +147,13 @@ async function loadSheet(){
   const text = await res.text();
   const rows = parseCSV(text);
 
-  // R1 = tulisan diam, R2 = running text
-  infoText = rows[0][0] || "";
-  runningText = rows[1][0] || "";
+  // R1 = tulisan diam (hari/tanggal), R2 = running text
+  const infoText = rows[0][0] || "";
+  const runningText = rows[1][0] || "";
+
+  // tampilkan R1 & R2
+  document.getElementById("infoText").textContent = infoText;
+  document.getElementById("runningText").textContent = runningText;
 
   // Data aset mulai baris ke-3
   assets = rows.slice(2).map(r => ({
@@ -149,10 +167,6 @@ async function loadSheet(){
     kondisi:r[15]||"",
     catatan:(r[16]&&r[16].trim())?r[16]:(r[21]||"")
   })).filter(a=>a.kode);
-
-  // tampilkan R1 & R2
-  document.getElementById("infoText").textContent = infoText;
-  document.getElementById("runningText").textContent = runningText;
 
   // isi datalist
   const dataList = document.getElementById("assetList");
@@ -191,7 +205,7 @@ function formatAsset(a){
 
 function searchAsset(){
   const out=document.getElementById("output");
-  let kode=searchBox.value.trim();
+  let kode=document.getElementById("searchBox").value.trim();
   if(!kode){ out.innerHTML="Masukkan Nomor Aset terlebih dahulu."; return; }
   if(/^\d{8}$/.test(kode)) kode+="-0";
   else if(/^\d{8}-$/.test(kode)) kode+="0";
@@ -200,8 +214,7 @@ function searchAsset(){
   out.innerHTML=found?formatAsset(found):"Data tidak ditemukan.";
 }
 
-searchBox.addEventListener("keydown",e=>{ if(e.key==="Enter") searchAsset(); });
-searchBox.addEventListener("focus",function(){ setTimeout(()=>{this.select();},0); });
+document.getElementById("searchBox").addEventListener("keydown",e=>{ if(e.key==="Enter") searchAsset(); });
 document.getElementById("searchButton").addEventListener("click", searchAsset);
 
 // ====== Toggle Tema ======
@@ -210,12 +223,10 @@ function setTheme(theme){
   document.body.className=theme;
   document.getElementById("output").className=theme;
   document.getElementById("searchBox").className=theme;
-
   document.querySelectorAll(".asset-row").forEach(r=>{
     if(theme==='dark') r.style.borderColor="#444";
     else r.style.borderColor="#ddd";
   });
-
   themeToggle.textContent=theme==='light'?'Tema Gelap':'Tema Terang';
 }
 setTheme('light');
