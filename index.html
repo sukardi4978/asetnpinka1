@@ -180,4 +180,57 @@ function formatAsset(a){
     ["Deskripsi", a.deskripsi],
     ["Kapitalisasi", a.kapitalisasi],
     ["Nilai Perolehan", nilaiText],
-    ["Lokasi", a.lokasi]()
+    ["Lokasi", a.lokasi],
+    ["Detail Lokasi", a.detail],
+    ["Opname Terakhir", a.opname],
+    ["Kondisi", a.kondisi],
+    ["Catatan", a.catatan]
+  ];
+
+  return rows.map(([label,val])=>`
+    <div class="asset-row">
+      <div class="asset-label">${label}</div>
+      <div class="asset-sep">:</div>
+      <div class="asset-value">${val||""}</div>
+    </div>
+  `).join("");
+}
+
+function searchAsset(){
+  const out=document.getElementById("output");
+  let kode=searchBox.value.trim();
+  if(!kode){ out.innerHTML="Masukkan Nomor Aset terlebih dahulu."; return; }
+  if(/^\d{8}$/.test(kode)) kode+="-0";
+  else if(/^\d{8}-$/.test(kode)) kode+="0";
+
+  const found=assets.find(a=>a.kode===kode);
+  out.innerHTML=found?formatAsset(found):"Data tidak ditemukan.";
+}
+
+searchBox.addEventListener("keydown",e=>{ if(e.key==="Enter") searchAsset(); });
+searchBox.addEventListener("focus",function(){ setTimeout(()=>{this.select();},0); });
+document.getElementById("searchButton").addEventListener("click", searchAsset);
+
+// ====== Toggle Tema ======
+const themeToggle=document.getElementById("themeToggle");
+function setTheme(theme){
+  document.body.className=theme;
+  document.getElementById("output").className=theme;
+  document.getElementById("searchBox").className=theme;
+
+  document.querySelectorAll(".asset-row").forEach(r=>{
+    if(theme==='dark') r.style.borderColor="#444";
+    else r.style.borderColor="#ddd";
+  });
+
+  themeToggle.textContent=theme==='light'?'Tema Gelap':'Tema Terang';
+}
+setTheme('light');
+themeToggle.addEventListener("click",()=>{ 
+  const current=document.body.className; 
+  setTheme(current==='light'?'dark':'light'); 
+});
+</script>
+
+</body>
+</html>
