@@ -44,7 +44,7 @@ body {
 .asset-row {
   display: grid;
   grid-template-columns: 135px 10px 1fr; /* label cukup untuk Opname Terakhir */
-  padding: 3px 0; /* lebih rapat */
+  padding: 2px 0; /* lebih rapat lagi */
   border-bottom: 1px solid #ddd;
   column-gap: 6px; 
 }
@@ -59,7 +59,7 @@ body {
 .asset-value {
   white-space: pre-wrap;
   word-break: break-word;
-  padding-left: 2px;
+  padding-left: 0;
   text-indent: 0;
 }
 
@@ -135,9 +135,9 @@ async function loadSheet(){
   const text = await res.text();
   const rows = parseCSV(text);
 
-  // R1 = tulisan diam, R2 = running text
-  infoText = rows[0][0] || "";
-  runningText = rows[1][0] || "";
+  // R1 = tulisan diam (kolom R = index 17), R2 = running text (kolom R = index 17)
+  infoText = (rows[0] && rows[0][17]) ? rows[0][17] : "";
+  runningText = (rows[1] && rows[1][17]) ? rows[1][17] : "";
 
   // Data aset mulai baris ke-3
   assets = rows.slice(2).map(r => ({
