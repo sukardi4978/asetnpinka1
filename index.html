@@ -43,8 +43,8 @@ body {
 /* Struktur hasil dengan grid */
 .asset-row {
   display: grid;
-  grid-template-columns: 135px 10px 1fr; /* label cukup untuk Opname Terakhir */
-  padding: 2px 0; /* lebih rapat lagi */
+  grid-template-columns: 135px 10px 1fr; /* label disesuaikan Opname Terakhir */
+  padding: 3px 0; /* spasi lebih rapat */
   border-bottom: 1px solid #ddd;
   column-gap: 6px; 
 }
@@ -59,7 +59,7 @@ body {
 .asset-value {
   white-space: pre-wrap;
   word-break: break-word;
-  padding-left: 0;
+  padding-left: 2px;
   text-indent: 0;
 }
 
@@ -95,7 +95,7 @@ body.dark { background: #121212; color: #eee; }
   <button id="searchButton">🔍</button>
   <datalist id="assetList"></datalist>
 </div>
-<div class="hint">Tekan Enter atau tombol (gambar kaca pembesar) untuk mencari.</div>
+<div class="hint">Tekan Enter atau tombol 🔍 untuk mencari.</div>
 
 <!-- Tulisan diam dari R1 -->
 <div id="infoText" style="margin-top:15px; font-weight:500;"></div>
@@ -135,9 +135,9 @@ async function loadSheet(){
   const text = await res.text();
   const rows = parseCSV(text);
 
-  // R1 = tulisan diam (kolom R = index 17), R2 = running text (kolom R = index 17)
-  infoText = (rows[0] && rows[0][17]) ? rows[0][17] : "";
-  runningText = (rows[1] && rows[1][17]) ? rows[1][17] : "";
+  // R1 = tulisan diam (baris 1 kolom A), R2 = running text (baris 2 kolom A)
+  infoText = (rows[0] && rows[0][0] && rows[0][0] !== "1") ? rows[0][0] : "";
+  runningText = (rows[1] && rows[1][0] && rows[1][0] !== "1") ? rows[1][0] : "";
 
   // Data aset mulai baris ke-3
   assets = rows.slice(2).map(r => ({
