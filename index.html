@@ -2,84 +2,77 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Aplikasi Percobaan</title>
+  <title>Cek Aset NP</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .running-text {
-      background: #003366; color: white; padding: 10px;
-      white-space: nowrap; overflow: hidden; box-sizing: border-box;
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
+    h1 { text-align: center; }
+    #info-text { text-align: center; margin-bottom: 10px; font-weight: bold; }
+    #running-text {
+      width: 100%; white-space: nowrap; overflow: hidden;
+      box-sizing: border-box; background: #007bff; color: white;
+      padding: 8px 0; font-weight: bold;
     }
-    .running-text span {
-      display: inline-block; padding-left: 100%;
-      animation: marquee 12s linear infinite;
+    #running-text span {
+      display: inline-block; padding-left: 100%; animation: marquee 12s linear infinite;
     }
     @keyframes marquee {
-      0% { transform: translateX(0%); }
-      100% { transform: translateX(-100%); }
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(-100%, 0); }
     }
-    .info-text { margin: 15px 0; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #007bff; color: white; }
   </style>
 </head>
 <body>
-  <!-- Running Text -->
-  <div class="running-text">
-    <span id="runningText">Memuat running text...</span>
-  </div>
+
+  <h1>Cek Aset NP</h1>
 
   <!-- Info Text -->
-  <div class="info-text" id="infoText">Memuat info text...</div>
+  <div id="info-text">Selasa Kliwon, 26 Agustus 2025…</div>
+
+  <!-- Running Text -->
+  <div id="running-text"><span>Percobaan Aplikasi…</span></div>
 
   <!-- Tabel Data -->
-  <table border="1" cellpadding="5" cellspacing="0">
+  <table id="data-table">
     <thead>
       <tr>
-        <th>No</th>
         <th>No Aset</th>
-        <th>Nama Aset</th>
+        <th>Deskripsi</th>
         <th>Nilai</th>
-        <th>Akun</th>
+        <th>Lokasi</th>
+        <th>Catatan</th>
       </tr>
     </thead>
-    <tbody id="dataTable"></tbody>
+    <tbody></tbody>
   </table>
 
   <script>
-    // URL CSV
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
+    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQLVnUwU6vXEjL-ssNiD8rVdHtuLFRfbTZpoYM7oTgrNRbe0IX6IhxX-GEw0-j9dY/pub?output=csv";
 
-    // Atur teks manual sesuai keinginan
-    document.getElementById("runningText").textContent = "Percobaan Aplikasi…";
-    document.getElementById("infoText").textContent = "Selasa Kliwon, 26 Agustus 2025…";
+    fetch(sheetURL)
+      .then(response => response.text())
+      .then(csvText => {
+        const rows = csvText.split("\n").map(r => r.split(","));
+        const tbody = document.querySelector("#data-table tbody");
+        tbody.innerHTML = "";
 
-    // Fungsi parsing CSV
-    function parseCSV(text) {
-      const rows = text.split("\n").map(r => r.split(","));
-      return rows;
-    }
-
-    // Ambil data CSV dan tampilkan ke tabel
-    fetch(csvUrl)
-      .then(res => res.text())
-      .then(csv => {
-        const data = parseCSV(csv);
-        const tbody = document.getElementById("dataTable");
-        data.slice(1).forEach((row, i) => {
-          if (row.length >= 5) {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${i+1}</td>
-              <td>${row[0]}</td>
-              <td>${row[1]}</td>
-              <td>${row[2]}</td>
-              <td>${row[3]}</td>
-            `;
-            tbody.appendChild(tr);
-          }
-        });
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i].length < 2) continue;
+          const tr = document.createElement("tr");
+          rows[i].forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell.trim();
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        }
       })
       .catch(err => {
-        console.error("Gagal memuat CSV", err);
+        console.error("Gagal memuat data:", err);
       });
   </script>
+
 </body>
 </html>
