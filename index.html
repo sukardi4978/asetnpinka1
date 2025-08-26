@@ -50,7 +50,7 @@
 <button id="themeToggle">Tema Gelap</button>
 
 <script>
-const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?output=csv";
 let assets = [];
 
 /* CSV parser */
@@ -200,7 +200,7 @@ function formatAsset(a){
 }
 
 /* --- Bagian pencarian + select-all sekali --- */
-let selectNextClick = false; // flag
+let selectNextClick = false;
 
 function searchAsset(){
   const key = document.getElementById('searchBox').value.trim();
@@ -211,7 +211,6 @@ function searchAsset(){
   else if(/^\d{8}-$/.test(kode)) kode += '0';
   const f = assets.find(a => a.kode === kode);
   out.innerHTML = f ? formatAsset(f) : 'Data tidak ditemukan.';
-
   if(f){ selectNextClick = true; }
 }
 
@@ -219,7 +218,6 @@ const searchBox = document.getElementById('searchBox');
 searchBox.addEventListener('keydown', e=>{ if(e.key === 'Enter') searchAsset(); });
 document.getElementById('searchButton').addEventListener('click', searchAsset);
 
-// klik/fokus pertama setelah pencarian → select all
 searchBox.addEventListener('focus', function(){
   if(selectNextClick){
     this.select();
