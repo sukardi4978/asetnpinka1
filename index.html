@@ -1,66 +1,104 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Aset BPS</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aplikasi Lumayan Mantab</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #searchBox { width: 250px; padding: 5px; }
-    #output { margin-top: 20px; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .marquee {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #222;
+      overflow: hidden;
+      white-space: nowrap;
+      box-sizing: border-box;
+      padding: 10px 0;
+    }
+
+    .marquee span {
+      display: inline-block;
+      padding-left: 100%;
+      animation: marquee 15s linear infinite;
+      font-size: 20px;
+    }
+
+    @keyframes marquee {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    .info-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .info-text {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .time {
+      font-size: 28px;
+    }
   </style>
 </head>
 <body>
-  <h1>Daftar Aset</h1>
-  <input id="searchBox" type="text" placeholder="Nomor Aset">
-  <button id="searchButton">Cari</button>
-  <div id="output"></div>
-  <marquee id="runningText" scrollamount="4"></marquee>
+  <div class="info-box">
+    <div class="info-text" id="infoText">Memuat...</div>
+    <div class="time" id="time"></div>
+  </div>
+
+  <div class="marquee">
+    <span id="runningText">Memuat data...</span>
+  </div>
 
   <script>
-    const assets = [
-      {kode:'12345678-0', nama:'Laptop Lenovo', lokasi:'Gudang'},
-      {kode:'87654321-0', nama:'Printer Epson', lokasi:'Ruang IT'}
-    ];
+    const INFO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
 
-    function formatAsset(a){
-      return `<b>${a.kode}</b>: ${a.nama}, Lokasi: ${a.lokasi}`;
-    }
+    async function loadData() {
+      try {
+        const response = await fetch(INFO_URL);
+        const data = await response.text();
+        const rows = data.split("\n").map(r => r.split(","));
 
-    let selectNextClick = false; // flag untuk kontrol select-all sekali saja
+        // Baris pertama → info utama (tulisan diam)
+        document.getElementById("infoText").textContent = rows[1][0] || "Tidak ada data";
 
-    function searchAsset(){
-      const key = document.getElementById('searchBox').value.trim();
-      const out = document.getElementById('output');
-      if(!key){ out.innerHTML = 'Masukkan Nomor Aset terlebih dahulu.'; return; }
-      let kode = key;
-      if(/^\d{8}$/.test(kode)) kode += '-0';
-      else if(/^\d{8}-$/.test(kode)) kode += '0';
-      const f = assets.find(a => a.kode === kode);
-      out.innerHTML = f ? formatAsset(f) : 'Data tidak ditemukan.';
-
-      // setelah pencarian, aktifkan flag supaya klik berikutnya select all
-      if(f){
-        selectNextClick = true;
+        // Baris kedua → running text
+        document.getElementById("runningText").textContent = rows[2][0] || "Tidak ada running text";
+      } catch (e) {
+        document.getElementById("infoText").textContent = "Gagal memuat data";
+        document.getElementById("runningText").textContent = "";
+        console.error(e);
       }
     }
 
-    const searchBox = document.getElementById('searchBox');
-    searchBox.addEventListener('keydown', e=>{ 
-      if(e.key === 'Enter') searchAsset(); 
-    });
-    document.getElementById('searchButton').addEventListener('click', searchAsset);
+    function updateTime() {
+      const now = new Date();
+      document.getElementById("time").textContent = now.toLocaleString("id-ID");
+    }
 
-    // event klik pada kotak pencarian
-    searchBox.addEventListener('focus', function(){
-      if(selectNextClick){
-        this.select();      // select all
-        selectNextClick = false; // habis dipakai, reset
-      }
-    });
+    // Update tiap detik
+    setInterval(updateTime, 1000);
+    updateTime();
 
-    // running text isi dengan semua aset
-    document.getElementById('runningText').textContent = 
-      assets.map(a=>`${a.kode}: ${a.nama} (${a.lokasi})`).join(' | ');
+    // Muat data awal, lalu refresh tiap 30 detik
+    loadData();
+    setInterval(loadData, 30000);
   </script>
 </body>
 </html>
