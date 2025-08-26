@@ -8,111 +8,122 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      background: #f9f9f9;
+      background: #f5f5f5;
       color: #333;
     }
-    h2 {
+    h1 {
       text-align: center;
     }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
     .search-box {
-      text-align: center;
+      display: flex;
+      gap: 10px;
       margin-bottom: 20px;
     }
     input[type="text"] {
-      padding: 10px;
-      width: 250px;
+      flex: 1;
+      padding: 8px;
+      font-size: 16px;
       border-radius: 5px;
-      border: 1px solid #aaa;
+      border: 1px solid #ccc;
     }
     button {
-      padding: 10px 15px;
-      margin-left: 5px;
+      padding: 8px 16px;
+      font-size: 16px;
       border: none;
-      background: #0077cc;
-      color: white;
       border-radius: 5px;
       cursor: pointer;
+      background: #007bff;
+      color: white;
     }
     button:hover {
-      background: #005fa3;
+      background: #0056b3;
     }
     table {
+      width: 100%;
       border-collapse: collapse;
-      margin: auto;
-      width: 90%;
-      max-width: 800px;
-      background: white;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
     }
     th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      padding: 10px;
       text-align: left;
     }
     th {
-      background: #0077cc;
+      background: #007bff;
       color: white;
     }
-    .no-result {
-      text-align: center;
-      margin-top: 20px;
+    .not-found {
       color: red;
       font-weight: bold;
+      margin-top: 15px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <h2>Cek Aset Non Produksi PT INKA</h2>
-
-  <div class="search-box">
-    <input type="text" id="searchInput" placeholder="Masukkan kode aset...">
-    <button onclick="searchData()">Cari</button>
+  <div class="container">
+    <h1>Cek Aset Non Produksi PT INKA</h1>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Masukkan kode aset...">
+      <button onclick="cariAset()">Cari</button>
+    </div>
+    <div id="result"></div>
   </div>
 
-  <div id="result"></div>
-
   <script>
-    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
 
-    let data = [];
+    async function ambilData() {
+      const res = await fetch(sheetUrl);
+      const data = await res.text();
+      const rows = data.split("\n").map(r => r.split(","));
+      return rows;
+    }
 
-    // Load data dari Google Sheet
-    fetch(sheetURL)
-      .then(response => response.text())
-      .then(csv => {
-        const rows = csv.split("\n").map(row => row.split(","));
-        data = rows.slice(1); // buang header
-      });
-
-    function searchData() {
+    async function cariAset() {
       const input = document.getElementById("searchInput").value.trim();
       const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "";
+      resultDiv.innerHTML = "Memuat data...";
 
-      if (!input) return;
+      const rows = await ambilData();
+      const header = rows[0];
+      const data = rows.slice(1);
 
-      const result = data.find(row => row[0] === input || row[0] === input + "-0");
+      // Hilangkan -0 di akhir kode untuk pencocokan
+      const cariKode = input.endsWith("-0") ? input.slice(0, -2) : input;
 
-      if (result) {
-        resultDiv.innerHTML = `
-          <table>
-            <tr><th>Kode Aset</th><td>${result[0]}</td></tr>
-            <tr><th>Deskripsi</th><td>${result[1]}</td></tr>
-            <tr><th>Kapitalisasi</th><td>${result[2].split("-")[0]}</td></tr>
-            <tr><th>Nilai Perolehan</th><td>${result[3]}</td></tr>
-            <tr><th>Lokasi</th><td>${result[8]}</td></tr>
-            <tr><th>Detail Lokasi</th><td>${result[9]}</td></tr>
-            <tr><th>Opname Terakhir</th><td>${result[5]}</td></tr>
-          </table>
-        `;
+      const ditemukan = data.find(row => {
+        let kode = row[0].trim();
+        if (kode.endsWith("-0")) kode = kode.slice(0, -2);
+        return kode === cariKode;
+      });
+
+      if (ditemukan) {
+        let table = "<table><tr>";
+        header.forEach(h => table += `<th>${h}</th>`);
+        table += "</tr><tr>";
+        ditemukan.forEach(d => table += `<td>${d}</td>`);
+        table += "</tr></table>";
+        resultDiv.innerHTML = table;
       } else {
-        resultDiv.innerHTML = `<p class="no-result">Data aset tidak ditemukan.</p>`;
+        resultDiv.innerHTML = "<p class='not-found'>Aset tidak ditemukan.</p>";
       }
     }
 
-    // Tambahkan enter sebagai pemicu cari
+    // Enter untuk cari
     document.getElementById("searchInput").addEventListener("keypress", function(e) {
       if (e.key === "Enter") {
-        searchData();
+        cariAset();
       }
     });
   </script>
