@@ -51,161 +51,133 @@ let assets = [];
 function parseCSV(text) {
   text = text.replace(/^\uFEFF/, '');
   const lines = text.split(/\r?\n/);
-  const rows = [];
-  for (const line of lines) {
+  const rows = lines.map(line => {
     const cells = [];
     let cur = '', inQuotes = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
-        if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
-        else { inQuotes = !inQuotes; }
-      } else if (ch === ',' && !inQuotes) {
-        cells.push(cur); cur = '';
-      } else {
-        cur += ch;
-      }
+        if (inQuotes && line[i+1]==='"') { cur+='"'; i++; } else { inQuotes=!inQuotes; }
+      } else if (ch===',' && !inQuotes) { cells.push(cur); cur=''; }
+      else cur+=ch;
     }
     cells.push(cur);
-    rows.push(cells.map(c => (c||'').toString().trim()));
-  }
+    return cells.map(c => (c||'').toString().trim());
+  });
   return rows;
 }
 
-function hasLetter(s) {
-  try { return /\p{L}/u.test(s); }
-  catch { return /[A-Za-z]/.test(s); }
+function cleanRows(rows) {
+  return rows.filter(r => r && r.join('').trim() && r.join('').trim()!=='1');
 }
 
-function cleanRows(rows) {
-  return rows.filter(r => {
-    const joined = (r||[]).join('').trim();
-    if (!joined || joined === '1') return false;
-    const first = r.find(c => c && c.toString().trim() !== '');
-    if (first && first.toString().trim() === '1') return false;
-    return true;
-  });
-}
+function hasLetter(s){ try { return /\p{L}/u.test(s); } catch { return /[A-Za-z]/.test(s); } }
+function firstTextCell(row) { for (const c of row) if (c && hasLetter(c)) return c; for (const c of row) if (c) return c; return ''; }
 
 function findR1R2(rows) {
-  let r1 = -1, r2 = -1;
-  rows.forEach((row, i) => {
-    if (row.some(c => hasLetter(c))) {
-      if (r1 === -1) r1 = i;
-      else if (r2 === -1) r2 = i;
+  let r1=-1,r2=-1;
+  rows.forEach((row,i)=>{
+    if(row.some(c=>hasLetter(c))) {
+      if(r1===-1) r1=i;
+      else if(r2===-1) r2=i;
     }
   });
-  if (r1 === -1) r1 = 0;
-  if (r2 === -1) r2 = Math.min(rows.length - 1, r1 + 1);
-  return [r1, r2];
-}
-
-function firstTextCell(row) {
-  if (!row) return '';
-  for (const c of row) if (c && hasLetter(c)) return c;
-  for (const c of row) if (c && c.toString().trim() !== '') return c;
-  return '';
+  if(r1===-1) r1=0;
+  if(r2===-1) r2=Math.min(rows.length-1,r1+1);
+  return [r1,r2];
 }
 
 async function loadSheet() {
   try {
-    const res = await fetch(sheetUrl, { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const res = await fetch(sheetUrl,{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
     const text = await res.text();
     let rows = parseCSV(text);
     rows = cleanRows(rows);
-    if (!rows.length) {
-      document.getElementById('infoText').textContent = '';
-      document.getElementById('runningText').textContent = '';
-      document.getElementById('output').innerHTML = 'Sheet kosong atau tidak ter-publish.';
+    if(!rows.length){
+      document.getElementById('output').innerHTML='Sheet kosong atau tidak ter-publish.';
       return;
     }
-    const [r1, r2] = findR1R2(rows);
+
+    const [r1,r2] = findR1R2(rows);
     document.getElementById('infoText').textContent = firstTextCell(rows[r1]);
     document.getElementById('runningText').textContent = firstTextCell(rows[r2]);
-    let start = Math.max(r1, r2) + 1;
-    while (start < rows.length && (!rows[start][4] || rows[start][4].toString().trim() === '1')) start++;
-    if (start >= rows.length) {
-      start = rows.findIndex(r => r[4] && r[4].toString().trim() !== '' && r[4].toString().trim() !== '1');
-      if (start < 0) start = rows.length;
-    }
-    assets = rows.slice(start).map(r => ({
-      kode: (r[4] || '').toString().trim(),
-      deskripsi: r[5] || '',
-      kapitalisasi: r[6] || '',
-      nilai: r[19] || '',
-      opname: r[10] || r[9] || '',
-      lokasi: r[13] || '',
-      detail: r[14] || '',
-      kondisi: r[15] || '',
-      catatan: (r[16] && r[16].toString().trim()) ? r[16] : (r[21] || '')
-    })).filter(a => a.kode && a.kode !== '1');
 
+    // Tentukan start data aset (baris setelah header)
+    let start = Math.max(r1,r2)+1;
+
+    assets = rows.slice(start).map(r=>({
+      kode: r[0]||'',
+      deskripsi: r[1]||'',
+      kapitalisasi: r[2]||'',
+      nilai: r[3]||'',
+      opname: r[5]||'',
+      lokasi: r[8]||'',
+      detail: r[9]||'',
+    })).filter(a=>a.kode);
+
+    // isi datalist
     const dl = document.getElementById('assetList');
-    dl.innerHTML = '';
-    assets.map(a => a.kode).sort().slice(0,5000).forEach(k => {
+    dl.innerHTML='';
+    assets.map(a=>a.kode).sort().forEach(k=>{
       const opt = document.createElement('option');
-      opt.value = k;
+      opt.value=k;
       dl.appendChild(opt);
     });
-  } catch (err) {
-    document.getElementById('output').innerHTML = 'Gagal memuat data: ' + err;
-    document.getElementById('infoText').textContent = '';
-    document.getElementById('runningText').textContent = '';
+
+    console.log('Data aset dimuat:', assets.length);
+  } catch(err){
+    document.getElementById('output').innerHTML='Gagal memuat data: '+err;
+    console.error(err);
   }
 }
 
-function formatAsset(a) {
-  let nilai = (a.nilai || '').toString().trim();
-  if (!nilai) nilai = 'Rp. -';
-  else if (!nilai.startsWith('Rp.')) nilai = 'Rp. ' + nilai;
-  const rows = [
-    ['Nomor Aset', a.kode],
-    ['Deskripsi', a.deskripsi],
-    ['Kapitalisasi', a.kapitalisasi],
-    ['Nilai Perolehan', nilai],
-    ['Lokasi', a.lokasi],
-    ['Detail Lokasi', a.detail],
-    ['Opname Terakhir', a.opname],
-    ['Kondisi', a.kondisi],
-    ['Catatan', a.catatan]
+function formatAsset(a){
+  let nilai = a.nilai||'';
+  if(!nilai) nilai='Rp. -';
+  else if(!nilai.startsWith('Rp.')) nilai='Rp. '+nilai;
+  const rows=[
+    ['Nomor Aset',a.kode],
+    ['Deskripsi',a.deskripsi],
+    ['Kapitalisasi',a.kapitalisasi],
+    ['Nilai Perolehan',nilai],
+    ['Lokasi',a.lokasi],
+    ['Detail Lokasi',a.detail],
+    ['Opname Terakhir',a.opname]
   ];
-  return rows.map(([label,val]) => `
+  return rows.map(([label,val])=>`
     <div class="asset-row">
       <div class="asset-label">${label}</div><div class="asset-sep">:</div><div class="asset-value">${val||''}</div>
     </div>
   `).join('');
 }
 
-let selectNext = false;
-
-function searchAsset() {
+let selectNext=false;
+function searchAsset(){
   const key = document.getElementById('searchBox').value.trim();
   const out = document.getElementById('output');
-  if (!key) return out.innerHTML = 'Masukkan Nomor Aset terlebih dahulu.';
+  if(!key) return out.innerHTML='Masukkan Nomor Aset terlebih dahulu.';
   let kode = key;
-  if (/^\d{8}$/.test(kode)) kode += '-0';
-  else if (/^\d{8}-$/.test(kode)) kode += '0';
-  const f = assets.find(a => a.kode === kode);
+  if(/^\d{8}$/.test(kode)) kode+='-0';
+  else if(/^\d{8}-$/.test(kode)) kode+='0';
+  const f = assets.find(a=>a.kode===kode || a.kode===key);
   out.innerHTML = f ? formatAsset(f) : 'Data tidak ditemukan.';
-  if (f) selectNext = true;
+  if(f) selectNext=true;
 }
 
-document.getElementById('searchBox').addEventListener('keydown', e => { if (e.key==='Enter') searchAsset(); });
+document.getElementById('searchBox').addEventListener('keydown', e=>{ if(e.key==='Enter') searchAsset(); });
 document.getElementById('searchButton').addEventListener('click', searchAsset);
-document.getElementById('searchBox').addEventListener('focus', function(){
-  if (selectNext) { this.select(); selectNext = false; }
-});
+document.getElementById('searchBox').addEventListener('focus', function(){ if(selectNext){ this.select(); selectNext=false; } });
 
-const themeToggle = document.getElementById('themeToggle');
-function setTheme(t) {
-  document.body.className = t;
-  document.getElementById('output').className = t;
-  document.getElementById('searchBox').className = t;
-  themeToggle.textContent = t === 'light' ? 'Tema Gelap' : 'Tema Terang';
+const themeToggle=document.getElementById('themeToggle');
+function setTheme(t){
+  document.body.className=t;
+  document.getElementById('output').className=t;
+  document.getElementById('searchBox').className=t;
+  themeToggle.textContent = t==='light'?'Tema Gelap':'Tema Terang';
 }
 setTheme('light');
-themeToggle.addEventListener('click', () => setTheme(document.body.className === 'light' ? 'dark' : 'light'));
+themeToggle.addEventListener('click',()=>setTheme(document.body.className==='light'?'dark':'light'));
 
 loadSheet();
 </script>
