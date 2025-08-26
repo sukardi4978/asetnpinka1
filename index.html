@@ -1,249 +1,120 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8"/>
-<title>Cek Aset Non Produksi PT INKA</title>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed&family=Roboto+Mono&display=swap" rel="stylesheet">
-<style>
-body{margin:20px;font-family:'Roboto Condensed',Arial,sans-serif;text-align:center;}
-h2{margin:0 0 8px;}
-#runningText{margin:10px 0;font-size:14px;font-weight:500;color:#1a73e8;}
-#searchBox{padding:8px;font-size:16px;width:220px;}
-#searchButton{padding:8px 12px;cursor:pointer;}
-.hint{font-size:12px;color:#666;margin-top:6px;}
-#infoText{margin-top:10px;font-weight:500;}
-#output{margin:18px auto;text-align:left;display:inline-block;padding:12px;border-radius:6px;max-width:720px;min-width:320px;}
-.asset-row{display:grid;grid-template-columns:120px 8px 1fr;padding:4px 0;border-bottom:1px solid #ddd;column-gap:6px;}
-.asset-row:last-child{border-bottom:none;}
-.asset-label{font-weight:500;text-align:left; width:120px; max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
-.asset-sep{text-align:center;}
-.asset-value{white-space:pre-wrap;word-break:break-word;padding-left:2px;}
-#themeToggle{display:block;margin:10px auto 0 auto;padding:6px 12px;cursor:pointer;}
-body.light{background:#f8fbff;color:#222}
-body.dark{background:#121212;color:#eee}
-#output.light{background:#f8fbff;border:1px solid #ccc}
-#output.dark{background:#121212;border:1px solid #555}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cek Aset Non Produksi PT INKA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h2 {
+      text-align: center;
+    }
+    .search-box {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 250px;
+      border-radius: 5px;
+      border: 1px solid #aaa;
+    }
+    button {
+      padding: 10px 15px;
+      margin-left: 5px;
+      border: none;
+      background: #0077cc;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    table {
+      border-collapse: collapse;
+      margin: auto;
+      width: 90%;
+      max-width: 800px;
+      background: white;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #0077cc;
+      color: white;
+    }
+    .no-result {
+      text-align: center;
+      margin-top: 20px;
+      color: red;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
+  <h2>Cek Aset Non Produksi PT INKA</h2>
 
-<h2>Cek Aset Non Produksi PT INKA Madiun</h2>
-<h2>Aset Non Produksi PT INKA</h2>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Masukkan kode aset...">
+    <button onclick="searchData()">Cari</button>
+  </div>
 
-<!-- running text bergerak -->
-<marquee id="runningText" scrollamount="8"></marquee>
+  <div id="result"></div>
 
-<div style="margin-top:10px;">
-<input id="searchBox" type="text" placeholder="Masukkan Nomor Aset..." list="assetList" autocomplete="off"/>
-<button id="searchButton">🔍</button>
-<datalist id="assetList"></datalist>
-</div>
-<div class="hint">Tekan Enter atau tombol 🔍 untuk mencari.</div>
+  <script>
+    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
 
-<!-- hari & tanggal -->
-<div id="infoText"></div>
+    let data = [];
 
-<!-- hasil -->
-<div id="output">Silakan ketik Nomor Aset…</div>
+    // Load data dari Google Sheet
+    fetch(sheetURL)
+      .then(response => response.text())
+      .then(csv => {
+        const rows = csv.split("\n").map(row => row.split(","));
+        data = rows.slice(1); // buang header
+      });
 
-<!-- tombol tema di bawah -->
-<button id="themeToggle">Tema Gelap</button>
+    function searchData() {
+      const input = document.getElementById("searchInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "";
 
-<script>
-const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTafvAiaKbaQt2RIboLf9nY6v8mltXLhSN4R-l-LZGFmic1p0-83knr-g-bFEoPDB8Rl2T661YdYFTj/pub?gid=1753334008&single=true&output=csv";
-let assets = [];
+      if (!input) return;
 
-/* CSV parser */
-function parseCSV(text){
-text = text.replace(/^\uFEFF/,'');
-const lines = text.split(/\r?\n/);
-const rows = [];
-for(const line of lines){
-const cells = []; let cur = '', inQuotes = false;
-for(let i=0;i<line.length;i++){
-const ch = line[i];
-if(ch === '"'){
-if(inQuotes && line[i+1] === '"'){ cur += '"'; i++; }
-else { inQuotes = !inQuotes; }
-} else if(ch === ',' && !inQuotes){
-cells.push(cur); cur = '';
-} else {
-cur += ch;
-}
-}
-cells.push(cur);
-rows.push(cells.map(c=> (c||'').toString().trim()));
-}
-return rows;
-}
+      const result = data.find(row => row[0] === input || row[0] === input + "-0");
 
-/* helper: apakah sebuah string mengandung huruf (unicode) */
-function hasLetter(s){
-try { return /\p{L}/u.test(s); }
-catch(e){ return /[A-Za-z]/.test(s); }
-}
+      if (result) {
+        resultDiv.innerHTML = `
+          <table>
+            <tr><th>Kode Aset</th><td>${result[0]}</td></tr>
+            <tr><th>Deskripsi</th><td>${result[1]}</td></tr>
+            <tr><th>Kapitalisasi</th><td>${result[2].split("-")[0]}</td></tr>
+            <tr><th>Nilai Perolehan</th><td>${result[3]}</td></tr>
+            <tr><th>Lokasi</th><td>${result[8]}</td></tr>
+            <tr><th>Detail Lokasi</th><td>${result[9]}</td></tr>
+            <tr><th>Opname Terakhir</th><td>${result[5]}</td></tr>
+          </table>
+        `;
+      } else {
+        resultDiv.innerHTML = `<p class="no-result">Data aset tidak ditemukan.</p>`;
+      }
+    }
 
-/* bersihkan baris yang kosong atau hanya berisi '1' di sel pertama/non-empty */
-function cleanRows(rows){
-return rows.filter(r => {
-const joined = (r||[]).join('').trim();
-if(!joined) return false;
-if(joined === '1') return false;
-const first = r.find(c => c && c.toString().trim() !== '');
-if(first && first.toString().trim() === '1') return false;
-return true;
-});
-}
-
-/* menemukan baris yang masuk akal untuk R1 dan R2 */
-function findR1R2(rows){
-let r1Index = -1, r2Index = -1;
-for(let i=0;i<rows.length;i++){
-const row = rows[i];
-if(row.some(cell => hasLetter(cell))){
-if(r1Index === -1) r1Index = i;
-else if(r2Index === -1){ r2Index = i; break; }
-}
-}
-if(r1Index === -1) r1Index = 0;
-if(r2Index === -1) r2Index = Math.min(rows.length-1, r1Index+1);
-return [r1Index, r2Index];
-}
-
-function firstTextCell(row){
-if(!row) return '';
-for(const c of row){ if(c && hasLetter(c)) return c; }
-for(const c of row){ if(c && c.toString().trim() !== '') return c; }
-return '';
-}
-
-async function loadSheet(){
-try {
-const res = await fetch(sheetUrl, {cache:'no-store'});
-if(!res.ok) throw new Error('HTTP '+res.status);
-const text = await res.text();
-let rows = parseCSV(text);
-rows = cleanRows(rows);
-
-if(rows.length === 0){
-document.getElementById('infoText').textContent = '';
-document.getElementById('runningText').textContent = '';
-document.getElementById('output').innerHTML = 'Sheet kosong atau tidak ter-publish.';
-return;
-}
-
-const [r1Index, r2Index] = findR1R2(rows);
-const r1 = firstTextCell(rows[r1Index]);
-const r2 = firstTextCell(rows[r2Index]);
-
-document.getElementById('infoText').textContent = r1 || '';
-document.getElementById('runningText').textContent = r2 || '';
-
-let start = Math.max(r1Index, r2Index) + 1;
-while(start < rows.length){
-const cell = (rows[start] && rows[start][4]) ? rows[start][4].toString().trim() : '';
-if(cell && cell !== '1') break;
-start++;
-}
-if(start >= rows.length){
-start = rows.findIndex(r => r[4] && r[4].toString().trim() && r[4].toString().trim() !== '1');
-if(start === -1) start = rows.length;
-}
-
-assets = rows.slice(start).map(r => ({
-kode: (r[4]||'').toString().trim(),
-deskripsi: r[5]||'',
-kapitalisasi: r[6]||'',
-nilai: r[19]||'',
-opname: r[10]||r[9]||'',
-lokasi: r[13]||'',
-detail: r[14]||'',
-kondisi: r[15]||'',
-catatan: (r[16] && r[16].toString().trim()) ? r[16] : (r[21]||'')
-})).filter(a => a.kode && a.kode !== '1');
-
-const dl = document.getElementById('assetList');
-dl.innerHTML = '';
-assets.map(a=>a.kode).sort((a,b)=>a.localeCompare(b)).slice(0,5000).forEach(k=>{
-const opt = document.createElement('option'); opt.value = k; dl.appendChild(opt);
-});
-
-} catch(err){
-document.getElementById('output').innerHTML = 'Gagal memuat data: ' + err;
-document.getElementById('infoText').textContent = '';
-document.getElementById('runningText').textContent = '';
-}
-}
-
-function formatAsset(a){
-let nilai = (a.nilai||'').toString().trim();
-if(!nilai) nilai = 'Rp. -';
-else if(!nilai.startsWith('Rp.')) nilai = 'Rp. ' + nilai;
-const rows = [
-['Nomor Aset', a.kode],
-['Deskripsi', a.deskripsi],
-['Kapitalisasi', a.kapitalisasi],
-['Nilai Perolehan', nilai],
-['Lokasi', a.lokasi],
-['Detail Lokasi', a.detail],
-['Opname Terakhir', a.opname],
-['Kondisi', a.kondisi],
-['Catatan', a.catatan]
-];
-return rows.map(([label,val])=>`
-   <div class="asset-row">
-     <div class="asset-label">${label}</div>
-     <div class="asset-sep">:</div>
-     <div class="asset-value">${val||''}</div>
-   </div>
- `).join('');
-}
-
-/* --- Bagian pencarian + select-all sekali --- */
-let selectNextClick = false; // flag
-
-function searchAsset(){
-const key = document.getElementById('searchBox').value.trim();
-const out = document.getElementById('output');
-if(!key){ out.innerHTML = 'Masukkan Nomor Aset terlebih dahulu.'; return; }
-let kode = key;
-if(/^\d{8}$/.test(kode)) kode += '-0';
-else if(/^\d{8}-$/.test(kode)) kode += '0';
-const f = assets.find(a => a.kode === kode);
-out.innerHTML = f ? formatAsset(f) : 'Data tidak ditemukan.';
-
-if(f){ selectNextClick = true; }
-}
-
-const searchBox = document.getElementById('searchBox');
-searchBox.addEventListener('keydown', e=>{ if(e.key === 'Enter') searchAsset(); });
-document.getElementById('searchButton').addEventListener('click', searchAsset);
-
-// klik/fokus pertama setelah pencarian → select all
-searchBox.addEventListener('focus', function(){
-if(selectNextClick){
-this.select();
-selectNextClick = false;
-}
-});
-
-/* --- Theme toggle --- */
-const themeToggle = document.getElementById('themeToggle');
-function setTheme(theme){
-document.body.className = theme;
-document.getElementById('output').className = theme;
-document.getElementById('searchBox').className = theme;
-themeToggle.textContent = theme === 'light' ? 'Tema Gelap' : 'Tema Terang';
-}
-setTheme('light');
-themeToggle.addEventListener('click', ()=> {
-const cur = document.body.className;
-setTheme(cur === 'light' ? 'dark' : 'light');
-});
-
-// init
-loadSheet();
-</script>
+    // Tambahkan enter sebagai pemicu cari
+    document.getElementById("searchInput").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        searchData();
+      }
+    });
+  </script>
 </body>
 </html>
