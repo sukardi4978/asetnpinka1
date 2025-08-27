@@ -1,13 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Aset BPS</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #searchBox { width: 250px; padding: 5px; }
-    #output { margin-top: 20px; }
-  </style>
 <meta charset="utf-8"/>
 <title>Cek Aset Non Produksi PT INKA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -34,41 +27,11 @@
 </style>
 </head>
 <body>
-  <h1>Daftar Aset</h1>
-  <input id="searchBox" type="text" placeholder="Nomor Aset">
-  <button id="searchButton">Cari</button>
-  <div id="output"></div>
-  <marquee id="runningText" scrollamount="4"></marquee>
 
-  <script>
-    const assets = [
-      {kode:'12345678-0', nama:'Laptop Lenovo', lokasi:'Gudang'},
-      {kode:'87654321-0', nama:'Printer Epson', lokasi:'Ruang IT'}
-    ];
-
-    function formatAsset(a){
-      return `<b>${a.kode}</b>: ${a.nama}, Lokasi: ${a.lokasi}`;
-    }
-
-    let selectNextClick = false; // flag untuk kontrol select-all sekali saja
-
-    function searchAsset(){
-      const key = document.getElementById('searchBox').value.trim();
-      const out = document.getElementById('output');
-      if(!key){ out.innerHTML = 'Masukkan Nomor Aset terlebih dahulu.'; return; }
-      let kode = key;
-      if(/^\d{8}$/.test(kode)) kode += '-0';
-      else if(/^\d{8}-$/.test(kode)) kode += '0';
-      const f = assets.find(a => a.kode === kode);
-      out.innerHTML = f ? formatAsset(f) : 'Data tidak ditemukan.';
-
-      // setelah pencarian, aktifkan flag supaya klik berikutnya select all
-      if(f){
-        selectNextClick = true;
-<h2>Cek Data Aset</h2>
+<h2>Cek Aset Non Produksi PT IKA</h2>
 
 <!-- running text bergerak -->
-<marquee id="runningText" scrollamount="4"></marquee>
+<marquee id="runningText" scrollamount="6"></marquee>
 
 <div style="margin-top:10px;">
   <input id="searchBox" type="text" placeholder="Masukkan Nomor Aset..." list="assetList" autocomplete="off"/>
@@ -114,23 +77,12 @@ function parseCSV(text){
   return rows;
 }
 
-    const searchBox = document.getElementById('searchBox');
-    searchBox.addEventListener('keydown', e=>{ 
-      if(e.key === 'Enter') searchAsset(); 
-    });
-    document.getElementById('searchButton').addEventListener('click', searchAsset);
 /* helper: apakah sebuah string mengandung huruf (unicode) */
 function hasLetter(s){
   try { return /\p{L}/u.test(s); }
   catch(e){ return /[A-Za-z]/.test(s); }
 }
 
-    // event klik pada kotak pencarian
-    searchBox.addEventListener('focus', function(){
-      if(selectNextClick){
-        this.select();      // select all
-        selectNextClick = false; // habis dipakai, reset
-      }
 /* bersihkan baris yang kosong atau hanya berisi '1' di sel pertama/non-empty */
 function cleanRows(rows){
   return rows.filter(r => {
@@ -216,10 +168,6 @@ async function loadSheet(){
       const opt = document.createElement('option'); opt.value = k; dl.appendChild(opt);
     });
 
-    // running text isi dengan semua aset
-    document.getElementById('runningText').textContent = 
-      assets.map(a=>`${a.kode}: ${a.nama} (${a.lokasi})`).join(' | ');
-  </script>
   } catch(err){
     document.getElementById('output').innerHTML = 'Gagal memuat data: ' + err;
     document.getElementById('infoText').textContent = '';
@@ -285,3 +233,16 @@ function setTheme(theme){
   document.body.className = theme;
   document.getElementById('output').className = theme;
   document.getElementById('searchBox').className = theme;
+  themeToggle.textContent = theme === 'light' ? 'Tema Gelap' : 'Tema Terang';
+}
+setTheme('light');
+themeToggle.addEventListener('click', ()=> {
+  const cur = document.body.className;
+  setTheme(cur === 'light' ? 'dark' : 'light');
+});
+
+// init
+loadSheet();
+</script>
+</body>
+</html>
